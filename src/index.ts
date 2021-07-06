@@ -63,7 +63,7 @@ async function getMsgFiles(dir: string): Promise<string[]> {
 
 function filenameToDataType(filename: string): string {
   const parts = filename.split(sep);
-  return `${parts[parts.length - 2]}/${basename(filename, ".msg")}`;
+  return `${parts[parts.length - 2]!}/${basename(filename, ".msg")}`;
 }
 
 function generateLibrary(definitions: Record<string, RosMsgDefinition>): string {
