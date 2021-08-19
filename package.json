@@ -1,6 +1,6 @@
 {
   "name": "@foxglove/rosmsg-msgs-common",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Common ROS message definitions using @foxglove/rosmsg",
   "license": "MIT",
   "keywords": [
