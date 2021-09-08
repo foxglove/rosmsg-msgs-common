@@ -36,8 +36,7 @@
   "scripts": {
     "lint:ci": "eslint --report-unused-disable-directives .",
     "lint": "eslint --report-unused-disable-directives --fix .",
-    "prepack": "node -r esbuild-runner/register src/index.ts",
-    "db": "node -r esbuild-runner/register src/createMsgDb.ts"
+    "prepack": "node -r esbuild-runner/register src/index.ts"
   },
   "devDependencies": {
     "@foxglove/eslint-plugin": "0.14.0",
