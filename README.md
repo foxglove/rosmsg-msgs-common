@@ -1,5 +1,7 @@
 # rosmsg-msgs-common
 
+[![npm version](https://img.shields.io/npm/v/@foxglove/rosmsg-msgs-common.svg?style=flat)](https://www.npmjs.com/package/@foxglove/rosmsg-msgs-common)
+
 This library exports a map of ROS1 datatype string keys to [@foxglove/rosmsg](https://github.com/foxglove/rosmsg) `RosMsgDefinition` values for most common ROS1 message definitions. The message definitions were extracted from the `ros:noetic-robot-focal` Docker container using the `gendeps --cat` command.
 
 ## License
