@@ -32,9 +32,7 @@ export default async function writeProtobuf(
   protoPath: string,
   definitions: Record<string, RosMsgDefinition>,
 ): Promise<void> {
-  const entries = Object.entries(definitions).sort(([a], [b]) => a.localeCompare(b));
-
-  for (const [typeName, def] of entries) {
+  for (const [typeName, def] of Object.entries(definitions)) {
     const nameParts = typeName.split("/");
     if (nameParts.length !== 2) {
       throw new Error(`Invalid name ${typeName}`);
