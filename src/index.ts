@@ -7,6 +7,8 @@ import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { join, basename, sep } from "path";
 import { format, Options } from "prettier";
 
+import writeProtobuf from "./writeProtobuf";
+
 const LICENSE = `// This Source Code Form is subject to the terms of the Mozilla Public
 // License, v2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/`;
@@ -47,6 +49,7 @@ async function main() {
   await mkdir(distDir, { recursive: true });
   await writeFile(libFile, libOutput);
   await writeFile(declFile, declOutput);
+  await writeProtobuf(join(distDir, "proto"), definitions);
 }
 
 async function getMsgFiles(dir: string): Promise<string[]> {
