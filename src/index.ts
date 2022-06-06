@@ -81,20 +81,18 @@ module.exports = { definitions };
 function generateDefinitions(definitions: Record<string, RosMsgDefinition>): string {
   const entries = Object.keys(definitions)
     .sort()
-    .map((key) => `    "${key}": RosMsgDefinition;`)
+    .map((key) => `  "${key}": RosMsgDefinition;`)
     .join("\n");
   return `${LICENSE}
 
 import { RosMsgDefinition } from "@foxglove/rosmsg";
 
-declare module "@foxglove/rosmsg-msgs-common" {
-  type RosMsgCommonDefinitions = {
+export type RosMsgCommonDefinitions = {
 ${entries}
-  };
+};
 
-  const definitions: RosMsgCommonDefinitions;
-  export { definitions };
-}
+declare const definitions: RosMsgCommonDefinitions;
+export { definitions };
 `;
 }
 
