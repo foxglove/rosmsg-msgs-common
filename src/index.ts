@@ -116,7 +116,7 @@ function generateDefinitions(
 ): string {
   const ros1Entries = Object.keys(definitionsByGroup.get("ros1")!)
     .sort()
-    .map((key) => `    "${key}": RosMsgDefinition;`)
+    .map((key) => `  "${key}": RosMsgDefinition;`)
     .join("\n");
   const ros2Entries = Object.keys(definitionsByGroup.get("ros2")!)
     .sort()
