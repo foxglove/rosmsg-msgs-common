@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/
-
 import { parse, ParseOptions, RosMsgDefinition } from "@foxglove/rosmsg";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { join, basename, sep } from "path";
@@ -124,25 +120,23 @@ function generateDefinitions(
     .join("\n");
   const ros2Entries = Object.keys(definitionsByGroup.get("ros2")!)
     .sort()
-    .map((key) => `    "${key}": RosMsgDefinition;`)
+    .map((key) => `  "${key}": RosMsgDefinition;`)
     .join("\n");
   return `${LICENSE}
 
 import { RosMsgDefinition } from "@foxglove/rosmsg";
 
-declare module "@foxglove/rosmsg-msgs-common" {
-  type Ros1MsgCommonDefinitions = {
+export type Ros1MsgCommonDefinitions = {
 ${ros1Entries}
-  };
+};
 
-  type Ros2MsgCommonDefinitions = {
+export type Ros2MsgCommonDefinitions = {
 ${ros2Entries}
-  };
+};
 
-  const ros1: Ros1MsgCommonDefinitions;
-  const ros2: Ros2MsgCommonDefinitions;
-  export { ros1, ros2 };
-}
+declare const ros1: Ros1MsgCommonDefinitions;
+declare const ros2: Ros2MsgCommonDefinitions;
+export { ros1, ros2 };
 `;
 }
 
