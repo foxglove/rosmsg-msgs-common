@@ -18,17 +18,24 @@ const PRETTIER_OPTS: Options = {
 
 async function main() {
   const msgdefsRos1Path = join(__dirname, "..", "msgdefs", "ros1");
-  const msgdefsRos2Path = join(__dirname, "..", "msgdefs", "ros2");
+  const msgdefsRos2GalacticPath = join(__dirname, "..", "msgdefs", "ros2galactic");
+  const msgdefsRos2HumblePath = join(__dirname, "..", "msgdefs", "ros2humble");
   const distDir = join(__dirname, "..", "dist");
   const libFile = join(distDir, "index.js");
   const declFile = join(distDir, "index.d.ts");
   const definitionsByGroup = new Map<string, Record<string, RosMsgDefinition>>([
     ["ros1", {}],
-    ["ros2", {}],
+    ["ros2galactic", {}],
+    ["ros2humble", {}],
   ]);
 
   await loadDefinitions(msgdefsRos1Path, definitionsByGroup.get("ros1")!, {});
-  await loadDefinitions(msgdefsRos2Path, definitionsByGroup.get("ros2")!, { ros2: true });
+  await loadDefinitions(msgdefsRos2GalacticPath, definitionsByGroup.get("ros2galactic")!, {
+    ros2: true,
+  });
+  await loadDefinitions(msgdefsRos2HumblePath, definitionsByGroup.get("ros2humble")!, {
+    ros2: true,
+  });
 
   const libOutput = generateLibrary(definitionsByGroup);
   const declOutput = generateDefinitions(definitionsByGroup);
@@ -114,30 +121,38 @@ module.exports.${groupName} = ${groupName}Definitions
 function generateDefinitions(
   definitionsByGroup: Map<string, Record<string, RosMsgDefinition>>,
 ): string {
-  const ros1Entries = Object.keys(definitionsByGroup.get("ros1")!)
-    .sort()
-    .map((key) => `  "${key}": RosMsgDefinition;`)
-    .join("\n");
-  const ros2Entries = Object.keys(definitionsByGroup.get("ros2")!)
-    .sort()
-    .map((key) => `  "${key}": RosMsgDefinition;`)
-    .join("\n");
-  return `${LICENSE}
+  let output = `${LICENSE}
 
 import { RosMsgDefinition } from "@foxglove/rosmsg";
-
-export type Ros1MsgCommonDefinitions = {
-${ros1Entries}
-};
-
-export type Ros2MsgCommonDefinitions = {
-${ros2Entries}
-};
-
-declare const ros1: Ros1MsgCommonDefinitions;
-declare const ros2: Ros2MsgCommonDefinitions;
-export { ros1, ros2 };
 `;
+
+  for (const [groupName, definitions] of definitionsByGroup.entries()) {
+    const entries = Object.keys(definitions)
+      .sort()
+      .map((key) => `  "${key}": RosMsgDefinition;`)
+      .join("\n");
+    output += `
+export type ${exportedTypeName(groupName)} = {
+${entries}
+};
+`;
+  }
+
+  output += `\n`;
+  for (const groupName of definitionsByGroup.keys()) {
+    output += `declare const ${groupName}: ${exportedTypeName(groupName)};\n`;
+  }
+
+  output += `export { ${[...definitionsByGroup.keys()].join(", ")} };\n`;
+  return output;
+}
+
+function exportedTypeName(groupName: string): string {
+  // Uppercase the first letter of `groupName` and any letter following a number
+  const camelCase =
+    groupName[0]!.toUpperCase() +
+    groupName.slice(1).replace(/([0-9])([a-z])/, (m) => m[0] + m[1]!.toUpperCase());
+  return `${camelCase}MsgCommonDefinitions`;
 }
 
 void main();
