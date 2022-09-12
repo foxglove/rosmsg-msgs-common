@@ -149,9 +149,9 @@ ${entries}
 
 function exportedTypeName(groupName: string): string {
   // Uppercase the first letter of `groupName` and any letter following a number
-  const camelCase =
-    groupName[0]!.toUpperCase() +
-    groupName.slice(1).replace(/([0-9])([a-z])/, (m) => m[0]! + m[1]!.toUpperCase());
+  const camelCase = `${groupName[0]!.toUpperCase()}${groupName
+    .slice(1)
+    .replace(/([0-9])([a-z])/, (m) => m[0]! + m[1]!.toUpperCase())}`;
   return `${camelCase}MsgCommonDefinitions`;
 }
 
