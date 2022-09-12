@@ -1,4 +1,4 @@
-import { parse, RosMsgDefinition } from "@foxglove/rosmsg";
+import { parse, ParseOptions, RosMsgDefinition } from "@foxglove/rosmsg";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { join, basename, sep } from "path";
 import { format, Options } from "prettier";
@@ -17,28 +17,28 @@ const PRETTIER_OPTS: Options = {
 };
 
 async function main() {
-  const msgdefsPath = join(__dirname, "..", "msgdefs");
+  const msgdefsRos1Path = join(__dirname, "..", "msgdefs", "ros1");
+  const msgdefsRos2GalacticPath = join(__dirname, "..", "msgdefs", "ros2galactic");
+  const msgdefsRos2HumblePath = join(__dirname, "..", "msgdefs", "ros2humble");
   const distDir = join(__dirname, "..", "dist");
   const libFile = join(distDir, "index.js");
   const declFile = join(distDir, "index.d.ts");
-  const definitions: Record<string, RosMsgDefinition> = {};
+  const definitionsByGroup = new Map<string, Record<string, RosMsgDefinition>>([
+    ["ros1", {}],
+    ["ros2galactic", {}],
+    ["ros2humble", {}],
+  ]);
 
-  const msgFiles = await getMsgFiles(msgdefsPath);
-  for (const filename of msgFiles) {
-    const dataType = filenameToDataType(filename);
-    const msgdef = await readFile(filename, { encoding: "utf8" });
-    const schema = parse(msgdef);
-    (schema[0] as RosMsgDefinition).name = dataType;
-    for (const entry of schema) {
-      if (entry.name == undefined) {
-        throw new Error(`Failed to parse ${dataType} from ${filename}`);
-      }
-      definitions[entry.name] = entry;
-    }
-  }
+  await loadDefinitions(msgdefsRos1Path, definitionsByGroup.get("ros1")!, {});
+  await loadDefinitions(msgdefsRos2GalacticPath, definitionsByGroup.get("ros2galactic")!, {
+    ros2: true,
+  });
+  await loadDefinitions(msgdefsRos2HumblePath, definitionsByGroup.get("ros2humble")!, {
+    ros2: true,
+  });
 
-  const libOutput = generateLibrary(definitions);
-  const declOutput = generateDefinitions(definitions);
+  const libOutput = generateLibrary(definitionsByGroup);
+  const declOutput = generateDefinitions(definitionsByGroup);
 
   await mkdir(distDir, { recursive: true });
   await writeFile(libFile, libOutput);
@@ -57,39 +57,102 @@ async function getMsgFiles(dir: string): Promise<string[]> {
   return output;
 }
 
+async function loadDefinitions(
+  msgdefsPath: string,
+  definitions: Record<string, RosMsgDefinition>,
+  parseOptions: ParseOptions,
+): Promise<void> {
+  const msgFiles = await getMsgFiles(msgdefsPath);
+  for (const filename of msgFiles) {
+    const dataType = filenameToDataType(filename);
+    const typeName = dataTypeToTypeName(dataType);
+    const msgdef = await readFile(filename, { encoding: "utf8" });
+    const schema = parse(msgdef, parseOptions);
+    (schema[0] as RosMsgDefinition).name = typeName;
+    for (const entry of schema) {
+      if (entry.name == undefined) {
+        throw new Error(`Failed to parse ${dataType} from ${filename}`);
+      }
+      definitions[entry.name] = entry;
+    }
+  }
+}
+
 function filenameToDataType(filename: string): string {
   const parts = filename.split(sep);
-  return `${parts[parts.length - 2]!}/${basename(filename, ".msg")}`;
+  const newParts: string[] = [];
+  const baseTypeName = basename(parts.pop()!, ".msg");
+  while (parts.length > 0) {
+    const part = parts.pop()!;
+    newParts.unshift(part);
+    if (part !== "msg") {
+      break;
+    }
+  }
+  return `${newParts.join("/")}/${baseTypeName}`;
 }
 
-function generateLibrary(definitions: Record<string, RosMsgDefinition>): string {
-  return format(
-    `${LICENSE}
-
-const definitions = ${JSON.stringify(definitions)}
-
-module.exports = { definitions };
-`,
-    PRETTIER_OPTS,
-  );
+function dataTypeToTypeName(dataType: string): string {
+  const parts = dataType.split("/");
+  if (parts.length < 2) {
+    throw new Error(`Invalid data type: ${dataType}`);
+  }
+  const pkg = parts[0]!;
+  if (pkg === "msg") {
+    throw new Error(`dataType=${dataType}`);
+  }
+  const name = parts[parts.length - 1]!;
+  return `${pkg}/${name}`;
 }
 
-function generateDefinitions(definitions: Record<string, RosMsgDefinition>): string {
-  const entries = Object.keys(definitions)
-    .sort()
-    .map((key) => `  "${key}": RosMsgDefinition;`)
-    .join("\n");
-  return `${LICENSE}
+function generateLibrary(
+  definitionsByGroup: Map<string, Record<string, RosMsgDefinition>>,
+): string {
+  let lib = `${LICENSE}\n`;
+  for (const [groupName, definitions] of definitionsByGroup.entries()) {
+    lib += `
+const ${groupName}Definitions = ${JSON.stringify(definitions)}
+module.exports.${groupName} = ${groupName}Definitions
+`;
+  }
+  return format(lib, PRETTIER_OPTS);
+}
+
+function generateDefinitions(
+  definitionsByGroup: Map<string, Record<string, RosMsgDefinition>>,
+): string {
+  let output = `${LICENSE}
 
 import { RosMsgDefinition } from "@foxglove/rosmsg";
+`;
 
-export type RosMsgCommonDefinitions = {
+  for (const [groupName, definitions] of definitionsByGroup.entries()) {
+    const entries = Object.keys(definitions)
+      .sort()
+      .map((key) => `  "${key}": RosMsgDefinition;`)
+      .join("\n");
+    output += `
+export type ${exportedTypeName(groupName)} = {
 ${entries}
 };
-
-declare const definitions: RosMsgCommonDefinitions;
-export { definitions };
 `;
+  }
+
+  output += `\n`;
+  for (const groupName of definitionsByGroup.keys()) {
+    output += `declare const ${groupName}: ${exportedTypeName(groupName)};\n`;
+  }
+
+  output += `export { ${[...definitionsByGroup.keys()].join(", ")} };\n`;
+  return output;
+}
+
+function exportedTypeName(groupName: string): string {
+  // Uppercase the first letter of `groupName` and any letter following a number
+  const camelCase = `${groupName[0]!.toUpperCase()}${groupName
+    .slice(1)
+    .replace(/([0-9])([a-z])/, (m) => m[0]! + m[1]!.toUpperCase())}`;
+  return `${camelCase}MsgCommonDefinitions`;
 }
 
 void main();
