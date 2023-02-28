@@ -1,5 +1,5 @@
-import { parse, ParseOptions } from "@foxglove/rosmsg";
 import { MessageDefinition } from "@foxglove/message-definition";
+import { parse, ParseOptions } from "@foxglove/rosmsg";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { join, basename, sep } from "path";
 import { format, Options } from "prettier";
