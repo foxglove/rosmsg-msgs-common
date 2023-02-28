@@ -1,11 +1,12 @@
-import { parse, ParseOptions, RosMsgDefinition } from "@foxglove/rosmsg";
+import { MessageDefinition } from "@foxglove/message-definition";
+import { parse, ParseOptions } from "@foxglove/rosmsg";
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { join, basename, sep } from "path";
 import { format, Options } from "prettier";
 
-const LICENSE = `// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/`;
+const LICENSE = `// This Source Code Form is subject to the terms of the MIT
+// License. If a copy of the MIT license was not distributed with this
+// file, You can obtain one at https://opensource.org/license/mit/`;
 
 const PRETTIER_OPTS: Options = {
   parser: "babel",
@@ -23,7 +24,7 @@ async function main() {
   const distDir = join(__dirname, "..", "dist");
   const libFile = join(distDir, "index.js");
   const declFile = join(distDir, "index.d.ts");
-  const definitionsByGroup = new Map<string, Record<string, RosMsgDefinition>>([
+  const definitionsByGroup = new Map<string, Record<string, MessageDefinition>>([
     ["ros1", {}],
     ["ros2galactic", {}],
     ["ros2humble", {}],
@@ -59,7 +60,7 @@ async function getMsgFiles(dir: string): Promise<string[]> {
 
 async function loadDefinitions(
   msgdefsPath: string,
-  definitions: Record<string, RosMsgDefinition>,
+  definitions: Record<string, MessageDefinition>,
   parseOptions: ParseOptions,
 ): Promise<void> {
   const msgFiles = await getMsgFiles(msgdefsPath);
@@ -68,7 +69,7 @@ async function loadDefinitions(
     const typeName = dataTypeToTypeName(dataType);
     const msgdef = await readFile(filename, { encoding: "utf8" });
     const schema = parse(msgdef, parseOptions);
-    (schema[0] as RosMsgDefinition).name = typeName;
+    (schema[0] as MessageDefinition).name = typeName;
     for (const entry of schema) {
       if (entry.name == undefined) {
         throw new Error(`Failed to parse ${dataType} from ${filename}`);
@@ -106,7 +107,7 @@ function dataTypeToTypeName(dataType: string): string {
 }
 
 function generateLibrary(
-  definitionsByGroup: Map<string, Record<string, RosMsgDefinition>>,
+  definitionsByGroup: Map<string, Record<string, MessageDefinition>>,
 ): string {
   let lib = `${LICENSE}\n`;
   for (const [groupName, definitions] of definitionsByGroup.entries()) {
@@ -119,17 +120,17 @@ module.exports.${groupName} = ${groupName}Definitions
 }
 
 function generateDefinitions(
-  definitionsByGroup: Map<string, Record<string, RosMsgDefinition>>,
+  definitionsByGroup: Map<string, Record<string, MessageDefinition>>,
 ): string {
   let output = `${LICENSE}
 
-import { RosMsgDefinition } from "@foxglove/rosmsg";
+import { MessageDefinition } from "@foxglove/message-definition";
 `;
 
   for (const [groupName, definitions] of definitionsByGroup.entries()) {
     const entries = Object.keys(definitions)
       .sort()
-      .map((key) => `  "${key}": RosMsgDefinition;`)
+      .map((key) => `  "${key}": MessageDefinition;`)
       .join("\n");
     output += `
 export type ${exportedTypeName(groupName)} = {
