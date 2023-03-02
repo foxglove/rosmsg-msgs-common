@@ -6,7 +6,7 @@ This library exports a map of ROS 1 and ROS 2 datatype string keys to [@foxglove
 
 ## License
 
-@foxglove/rosmsg-msgs-common is licensed under [MIT License](https://opensource.org/licenses/MIT).
+@foxglove/rosmsg-msgs-common is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 ## Releasing
 
