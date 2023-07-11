@@ -23,6 +23,7 @@ async function main() {
   const msgdefsRos2HumblePath = join(__dirname, "..", "msgdefs", "ros2humble");
   const distDir = join(__dirname, "..", "dist");
   const libFile = join(distDir, "index.js");
+  const esmFile = join(distDir, "index.esm.js");
   const declFile = join(distDir, "index.d.ts");
   const definitionsByGroup = new Map<string, Record<string, MessageDefinition>>([
     ["ros1", {}],
@@ -38,11 +39,13 @@ async function main() {
     ros2: true,
   });
 
-  const libOutput = generateLibrary(definitionsByGroup);
+  const libOutput = generateCjsLibrary(definitionsByGroup);
+  const esmOutput = generateEsmLibrary(definitionsByGroup);
   const declOutput = generateDefinitions(definitionsByGroup);
 
   await mkdir(distDir, { recursive: true });
   await writeFile(libFile, libOutput);
+  await writeFile(esmFile, esmOutput);
   await writeFile(declFile, declOutput);
 }
 
@@ -106,7 +109,7 @@ function dataTypeToTypeName(dataType: string): string {
   return `${pkg}/${name}`;
 }
 
-function generateLibrary(
+function generateCjsLibrary(
   definitionsByGroup: Map<string, Record<string, MessageDefinition>>,
 ): string {
   let lib = `${LICENSE}\n`;
@@ -116,6 +119,23 @@ const ${groupName}Definitions = ${JSON.stringify(definitions)}
 module.exports.${groupName} = ${groupName}Definitions
 `;
   }
+  return format(lib, PRETTIER_OPTS);
+}
+
+function generateEsmLibrary(
+  definitionsByGroup: Map<string, Record<string, MessageDefinition>>,
+): string {
+  let lib = `${LICENSE}\n`;
+  for (const [groupName, definitions] of definitionsByGroup.entries()) {
+    lib += `
+const ${groupName}Definitions = ${JSON.stringify(definitions)}
+export { ${groupName}Definitions as ${groupName} }
+`;
+  }
+  lib += `export default { ${[...definitionsByGroup.keys()]
+    .map((groupName) => `${groupName}: ${groupName}Definitions`)
+    .join(", ")} }`;
+
   return format(lib, PRETTIER_OPTS);
 }
 
@@ -140,11 +160,17 @@ ${entries}
   }
 
   output += `\n`;
-  for (const groupName of definitionsByGroup.keys()) {
-    output += `declare const ${groupName}: ${exportedTypeName(groupName)};\n`;
-  }
+  const groupExportTypes = [...definitionsByGroup.keys()].map(
+    (groupName) => `${groupName}: ${exportedTypeName(groupName)}`,
+  );
 
+  output += groupExportTypes.map((exportType) => `declare const ${exportType};\n`).join("");
   output += `export { ${[...definitionsByGroup.keys()].join(", ")} };\n`;
+
+  output += `declare const _default: {
+  ${groupExportTypes.join(",\n  ")}
+}`;
+  output += `\nexport default _default;\n`;
   return output;
 }
 

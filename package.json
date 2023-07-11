@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/foxglove/rosmsg-msgs-common",
   "main": "dist/index.js",
+  "module": "dist/index.esm.js",
   "typings": "dist/index.d.ts",
   "files": [
     "dist",
