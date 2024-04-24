@@ -114,13 +114,23 @@ function dataTypeToTypeName(dataType: string): string {
   return `${pkg}/${name}`;
 }
 
+function stringifyDefinitions(definitions: Record<string, MessageDefinition>) {
+  // Output bigints as strings with a trailing `n`.
+  const replacer = (_key: string, value: unknown) => {
+    return typeof value === "bigint" ? `${value.toString()}n` : value;
+  };
+
+  // Stringify definitions and re-convert stringified bigints to a bigint instance.
+  return JSON.stringify(definitions, replacer).replace(/"(-?\d+n)"/gm, "$1");
+}
+
 function generateCjsLibrary(
   definitionsByGroup: Map<string, Record<string, MessageDefinition>>,
 ): string {
   let lib = `${LICENSE}\n`;
   for (const [groupName, definitions] of definitionsByGroup.entries()) {
     lib += `
-const ${groupName}Definitions = ${JSON.stringify(definitions)}
+const ${groupName}Definitions = ${stringifyDefinitions(definitions)}
 module.exports.${groupName} = ${groupName}Definitions
 `;
   }
@@ -133,7 +143,7 @@ function generateEsmLibrary(
   let lib = `${LICENSE}\n`;
   for (const [groupName, definitions] of definitionsByGroup.entries()) {
     lib += `
-const ${groupName}Definitions = ${JSON.stringify(definitions)}
+const ${groupName}Definitions = ${stringifyDefinitions(definitions)}
 export { ${groupName}Definitions as ${groupName} }
 `;
   }
