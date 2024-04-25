@@ -28,6 +28,10 @@ jobs:
       - run: yarn run lint:ci
 
       - run: yarn pack
+      - name: Test commonjs import
+        run: yarn run test:commonjs
+      - name: Test types
+        run: yarn run test:types
       - name: Publish to NPM (dry run)
         # `yarn publish` does not support --provenance
         run: npm publish foxglove-rosmsg-msgs-common-*.tgz --provenance --access public --dry-run
