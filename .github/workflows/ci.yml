@@ -30,6 +30,8 @@ jobs:
       - run: yarn pack
       - name: Test commonjs import
         run: yarn run test:commonjs
+      - name: Test esm import
+        run: yarn run test:esm
       - name: Test types
         run: yarn run test:types
       - name: Publish to NPM (dry run)

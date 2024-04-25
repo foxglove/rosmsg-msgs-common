@@ -39,6 +39,7 @@
     "lint": "eslint --report-unused-disable-directives --fix .",
     "prepack": "node -r esbuild-runner/register src/index.ts",
     "test:commonjs": "node -e \"require('./dist/index.js')\"",
+    "test:esm": "test/testEsmImport.sh",
     "test:types": "tsc --noEmit ./dist/index.d.ts"
   },
   "devDependencies": {
