@@ -115,13 +115,19 @@ function dataTypeToTypeName(dataType: string): string {
 }
 
 function stringifyDefinitions(definitions: Record<string, MessageDefinition>) {
+  // JSON.stringify cannot handle bigints, so we output them first as a string of the scheme "BIGINT(number)"
+  // and then replace that string with the actual bigint instance (e.g. 0n).
+  const bigintRegex = /"BIGINT\(-?\d+\)"/gm;
+  const stringifyBigint = (val: bigint) => `BIGINT(${val.toString()})`;
+  const bigintFromString = (str: string) => str.slice('"BIGINT('.length, str.length - 2) + "n";
+
   // Output bigints as strings with a trailing `n`.
   const replacer = (_key: string, value: unknown) => {
-    return typeof value === "bigint" ? `${value.toString()}n` : value;
+    return typeof value === "bigint" ? stringifyBigint(value) : value;
   };
 
   // Stringify definitions and re-convert stringified bigints to a bigint instance.
-  return JSON.stringify(definitions, replacer).replace(/"(-?\d+n)"/gm, "$1");
+  return JSON.stringify(definitions, replacer).replace(bigintRegex, bigintFromString);
 }
 
 function generateCjsLibrary(
