@@ -21,6 +21,7 @@ async function main() {
   const msgdefsRos1Path = join(__dirname, "..", "msgdefs", "ros1");
   const msgdefsRos2GalacticPath = join(__dirname, "..", "msgdefs", "ros2galactic");
   const msgdefsRos2HumblePath = join(__dirname, "..", "msgdefs", "ros2humble");
+  const msgdefsRos2IronPath = join(__dirname, "..", "msgdefs", "ros2iron");
   const distDir = join(__dirname, "..", "dist");
   const libFile = join(distDir, "index.js");
   const esmFile = join(distDir, "index.esm.js");
@@ -29,6 +30,7 @@ async function main() {
     ["ros1", {}],
     ["ros2galactic", {}],
     ["ros2humble", {}],
+    ["ros2iron", {}],
   ]);
 
   await loadDefinitions(msgdefsRos1Path, definitionsByGroup.get("ros1")!, {});
@@ -36,6 +38,9 @@ async function main() {
     ros2: true,
   });
   await loadDefinitions(msgdefsRos2HumblePath, definitionsByGroup.get("ros2humble")!, {
+    ros2: true,
+  });
+  await loadDefinitions(msgdefsRos2IronPath, definitionsByGroup.get("ros2iron")!, {
     ros2: true,
   });
 
@@ -109,13 +114,29 @@ function dataTypeToTypeName(dataType: string): string {
   return `${pkg}/${name}`;
 }
 
+function stringifyDefinitions(definitions: Record<string, MessageDefinition>) {
+  // JSON.stringify cannot handle bigints, so we output them first as a string of the scheme "BIGINT(number)"
+  // and then replace that string with the actual bigint instance (e.g. 0n).
+  const bigintRegex = /"BIGINT\(-?\d+\)"/gm;
+  const stringifyBigint = (val: bigint) => `BIGINT(${val.toString()})`;
+  const bigintFromString = (str: string) => str.slice('"BIGINT('.length, str.length - 2) + "n";
+
+  // Output bigints as strings with a trailing `n`.
+  const replacer = (_key: string, value: unknown) => {
+    return typeof value === "bigint" ? stringifyBigint(value) : value;
+  };
+
+  // Stringify definitions and re-convert stringified bigints to a bigint instance.
+  return JSON.stringify(definitions, replacer).replace(bigintRegex, bigintFromString);
+}
+
 function generateCjsLibrary(
   definitionsByGroup: Map<string, Record<string, MessageDefinition>>,
 ): string {
   let lib = `${LICENSE}\n`;
   for (const [groupName, definitions] of definitionsByGroup.entries()) {
     lib += `
-const ${groupName}Definitions = ${JSON.stringify(definitions)}
+const ${groupName}Definitions = ${stringifyDefinitions(definitions)}
 module.exports.${groupName} = ${groupName}Definitions
 `;
   }
@@ -128,7 +149,7 @@ function generateEsmLibrary(
   let lib = `${LICENSE}\n`;
   for (const [groupName, definitions] of definitionsByGroup.entries()) {
     lib += `
-const ${groupName}Definitions = ${JSON.stringify(definitions)}
+const ${groupName}Definitions = ${stringifyDefinitions(definitions)}
 export { ${groupName}Definitions as ${groupName} }
 `;
   }
