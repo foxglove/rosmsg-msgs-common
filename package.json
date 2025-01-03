@@ -1,7 +1,7 @@
 {
-  "name": "@duke-robotics/rosmsg-msgs-common",
+  "name": "@foxglove/rosmsg-msgs-common",
   "version": "3.2.1",
-  "description": "Fork of @foxglove/rosmsg-msgs-common with ROS 2 Jazzy support",
+  "description": "Common ROS message definitions using @foxglove/rosmsg",
   "license": "MIT",
   "keywords": [
     "ros",
@@ -20,13 +20,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/DukeRobotics/rosmsg-msgs-common.git"
+    "url": "https://github.com/foxglove/rosmsg-msgs-common.git"
   },
   "author": {
-    "name": "Duke Robotics",
-    "email": "hello@duke-robotics.com"
+    "name": "Foxglove Technologies Inc",
+    "email": "contact@foxglove.dev"
   },
-  "homepage": "https://github.com/DukeRobotics/rosmsg-msgs-common",
+  "homepage": "https://github.com/foxglove/rosmsg-msgs-common",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "typings": "dist/index.d.ts",
